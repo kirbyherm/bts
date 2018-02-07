@@ -4,6 +4,7 @@ from bs4 import BeautifulSoup
 import requests
 from time import sleep
 from tqdm import tqdm
+import sys
 
 def get_recent(soup,filename,playerID):
   table = soup.findAll('table')
@@ -45,7 +46,7 @@ def loop_recent():
 #  bar = progressbar.ProgressBar(maxval=29999,\
 #    widgets=[progressbar.Bar('#','[',']'),' ',progressbar.Percentage()])
 #  bar.start()
-  for x in tqdm(range(7000,8000)):
+  for x in tqdm(range(int(sys.argv[1]),int(sys.argv[2]))):
 #  for x in tqdm(range(1,3000)):
     playerID = x
     playerpage = 'http://www.espn.com/mlb/player/_/id/'+str(x)
@@ -58,4 +59,6 @@ def loop_recent():
 #    sleep(0.1)
 #  bar.finish()
   print(total)
+
+
 loop_recent()
