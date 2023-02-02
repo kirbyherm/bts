@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/opt/intel/oneapi/intelpython/latest/bin/python
 
 #from mechanize import Browser
 from time import sleep
@@ -61,9 +61,9 @@ def loop_recent(filename,playername):
 #  df = pd.read_hdf('{}.h5'.format(dateID))
   df = pd.read_hdf(filename)
   df_orig = df.copy()
-#  print(df.loc[df.Name==playername])
+  print(df.loc[df.Name==playername])
   df['PitcherERA'].apply(lambda x : make_float(x))
-  print(df.sort_values(by='PitcherERA', ascending=False))
+#  print(df.sort_values(by='PitcherERA', ascending=False))
 
 def main():
     script, filename, playername = sys.argv

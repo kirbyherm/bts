@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/opt/intel/oneapi/intelpython/latest/bin/python
 
 #from mechanize import Browser
 from time import sleep
@@ -15,17 +15,7 @@ warnings.filterwarnings('ignore',category=pd.io.pytables.PerformanceWarning)
 
 pd.set_option('display.max_rows', None)
 pd.set_option('display.max_columns', None)
-
-layers = []
-
-for i in range(0,11):
-    for j in range(7,12):
-        if i == 0:
-            layers.append((j,))
-        elif i < j:
-            layers.append((j, i))
-print(layers)
-parameters = {"hidden_layer_sizes":layers}
+np.set_printoptions(threshold=sys.maxsize)
 
 team_dict = {
     "New York Yankees": "Yankees",
@@ -66,7 +56,27 @@ def make_float(x):
     except:
         return 5.00
 
-def loop_recent(filename):
+def weight_precision_score(estimator, X, y):
+    y_pred = estimator.predict(X)
+    w = estimator.predict_proba(X)[:,1].reshape((X.shape[0],1))
+    return precision_score(y, y_pred, sample_weight=w)
+
+def run_mlp(filename, outfile):
+
+  layers = []
+  
+  for i in range(1,11):
+      for j in range(7,12):
+          if i == 1:
+              layers.append((j,))
+          elif i < j:
+              layers.append((j, i))
+  print(layers[27])
+  ranks = [7, 31, 12, 19, 22, 11, 14, 36, 37, 20,  8, 15,  6,  5, 27,  4, 23,
+       30, 35, 16,  2, 33,  9, 26, 13, 10, 21,  1, 28, 17, 25, 38,  3, 32,
+       18, 34, 24, 29, 39, 40]
+  parameters = {"hidden_layer_sizes":layers}
+  
   subset = []
   playertotallist = []  
   features = ['pitcher_ERA','AllSplits_H','homeaway_H','hand_H','Last7Days_H','Last15Days_H','Last30Days_H','daynight_H','AllSplits_AVG','homeaway_AVG','hand_AVG','Last7Days_AVG','Last15Days_AVG','Last30Days_AVG','daynight_AVG']
@@ -103,10 +113,11 @@ def loop_recent(filename):
 #  print(df_train)
   df_played_count = (df.loc[(df['status'] == "Active") & (df['Playing']==True) & (df['played']==True) & (df['Date']<today)]).fillna(0)
   df_played_count = df_played_count.groupby(['playerID']).sum()['played']
-  print(df_played_count)
-  df.drop(['played_count'])
+#  print(df_played_count)
+  df = df.drop(columns=['played_count'])
+#  print(df.columns)
   df =df.join(df_played_count,'playerID',rsuffix='_count')
-  print(df[['played_count','played']])
+#  print(df[['played_count','played']])
   df_train = (df.loc[(df['status'] == "Active") & (df['Playing']==True) & (df['played']==True) & (df['Date']<today) & (df.played_count>(df.played_count.max()*0.3)),features]).fillna(0)
 #  print(df_train)
   X = np.array(df_train)
@@ -119,11 +130,11 @@ def loop_recent(filename):
   clf = MLPClassifier(
                 solver='lbfgs', 
                     alpha=1e-5,
-                    hidden_layer_sizes=(8,), 
+                    hidden_layer_sizes=layers[27], 
                     random_state=1,
                     max_iter=int(1e5))
   clf.fit(X,y)
-#  grid = GridSearchCV(clf, parameters)
+#  grid = GridSearchCV(clf, parameters, scoring=weight_precision_score)
 #  grid.fit(X,y)
 #  print(grid.best_index_, grid.best_score_)
 #  clf = MLPClassifier(
@@ -134,16 +145,18 @@ def loop_recent(filename):
 #                    max_iter=int(1e5))
 #  clf.fit(X,y)
 #  print(grid.cv_results_)
-#  print(cross_val_score(clf, X, y, cv=4, scoring='precision'))
+#  print(cross_val_score(clf, X, y, cv=4, scoring=weight_precision_score))
   predictions_train = clf.predict(X)
   predictions_proba = clf.predict_proba(X)[:,1].reshape((X.shape[0],1))
   df_train['predict_proba'] = clf.predict_proba(X)[:,1].reshape((X.shape[0],1))
 #  print(df_train.sort_values(by='predict_proba'))
-  y_weights = np.zeros((len(y),))
-  for i in range(y.shape[0]):
-    if predictions_proba[i] > 0.6:
-      y_weights[i] = 1
-  train_score = precision_score(y, predictions_train)
+  y_weights = clf.predict_proba(X)[:,1].reshape((X.shape[0],1))
+#  for i in range(y.shape[0]):
+#    if predictions_proba[i] > 0.6:
+#      y_weights[i] = 1
+  train_score = precision_score(y, predictions_train, sample_weight=y_weights)
+  print(train_score)
+  train_score = precision_score(y, predictions_train, sample_weight=y_weights*y_weights)
   print(train_score)
 #  print(today)
 #  print(np.sum(clf.predict(X)))
@@ -163,15 +176,17 @@ def loop_recent(filename):
   df_orig.loc[(df['status'] == 'Active') & (df['Playing']==True) & (df['Date']==today) & (df.played_count>(df.played_count.max()*0.3)), 'predict_hit'] = df_predict['predict_hit'].sort_values(ascending=False).rank(method='first',ascending=False)
   df_orig.loc[(df['status'] == 'Active') & (df['Playing']==True) & (df['Date']==today) & (df.played_count>(df.played_count.max()*0.3)), 'predict_hit_proba'] = df_predict['predict_hit']
 #  print(df_orig.sort_values(by='predict_hit'))
+  df_orig =df_orig.drop(columns=['played_count'])
   df_orig =df_orig.join(df_played_count,'playerID',rsuffix='_count')
   df_orig = df_orig.fillna(0)
-  df_orig.to_hdf('{}_proc.h5'.format(dateID),key='df')
+  df_orig.to_hdf('{}_proc.h5'.format(filename),key='df')
   print(df_orig.loc[(df_orig.predict_hit>0) & (df_orig.predict_hit<10),['Name','Date','Team','predict_hit','predict_hit_proba','hitbool','Last7Days_AVG','Last15Days_AVG','Last30Days_AVG']].sort_values(by=['Date','predict_hit']))
   print(df_orig.loc[(df_orig.predict_hit>0) & (df_orig.predict_hit<3) & (df_orig.Date < today),['hitbool']].sum()/df_orig.loc[(df_orig.predict_hit>0) & (df_orig.predict_hit<3) & (df_orig.Date < today)].shape[0])
+  df_orig.loc[(df_orig.predict_hit>0) & (df_orig.predict_hit<10),['Name','Date','Team','predict_hit','predict_hit_proba','hitbool','Last7Days_AVG','Last15Days_AVG','Last30Days_AVG']].sort_values(by=['Date','predict_hit']).to_csv(outfile)
 
 def main():
-    script, filename = sys.argv
-    loop_recent(filename)
+    script, filename, outfile = sys.argv
+    run_mlp(filename, outfile)
 
 if __name__ == "__main__":
     main()
