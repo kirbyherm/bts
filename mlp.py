@@ -1,4 +1,4 @@
-#!/opt/intel/oneapi/intelpython/latest/bin/python
+#!/usr/bin/env python3
 
 #from mechanize import Browser
 from time import sleep
@@ -112,7 +112,8 @@ def run_mlp(filename, outfile):
   df.loc[df['hitbool'] == True, 'hit'] = 1
 #  print(df_train)
   df_played_count = (df.loc[(df['status'] == "Active") & (df['Playing']==True) & (df['played']==True) & (df['Date']<today)]).fillna(0)
-  df_played_count = df_played_count.groupby(['playerID']).sum()['played']
+#  print(df_played_count.groupby(['playerID']
+  df_played_count = df_played_count.loc[:,['played','playerID']].groupby(['playerID']).sum()#['played']
 #  print(df_played_count)
   df = df.drop(columns=['played_count'])
 #  print(df.columns)
@@ -182,7 +183,7 @@ def run_mlp(filename, outfile):
   df_orig.to_hdf('{}_proc.h5'.format(filename),key='df')
   print(df_orig.loc[(df_orig.predict_hit>0) & (df_orig.predict_hit<10),['Name','Date','Team','predict_hit','predict_hit_proba','hitbool','Last7Days_AVG','Last15Days_AVG','Last30Days_AVG']].sort_values(by=['Date','predict_hit']))
   print(df_orig.loc[(df_orig.predict_hit>0) & (df_orig.predict_hit<3) & (df_orig.Date < today),['hitbool']].sum()/df_orig.loc[(df_orig.predict_hit>0) & (df_orig.predict_hit<3) & (df_orig.Date < today)].shape[0])
-  df_orig.loc[(df_orig.predict_hit>0) & (df_orig.predict_hit<10),['Name','Date','Team','predict_hit','predict_hit_proba','hitbool','Last7Days_AVG','Last15Days_AVG','Last30Days_AVG']].sort_values(by=['Date','predict_hit']).to_csv(outfile)
+  df_orig.loc[(df_orig.predict_hit>0) & (df_orig.predict_hit<10),['Name','Date','Team','predict_hit','predict_hit_proba','hitbool','Last7Days_AVG','Last15Days_AVG','Last30Days_AVG']].sort_values(by=['Date','predict_hit'], ascending=[False, True]).to_csv(outfile)
 
 def main():
     script, filename, outfile = sys.argv

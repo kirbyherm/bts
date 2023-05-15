@@ -1,4 +1,4 @@
-#!/opt/intel/oneapi/intelpython/latest/bin/python
+#!/usr/bin/env python3
 
 from lxml import html
 #from mechanize import Browser
@@ -226,15 +226,28 @@ def get_splits(df,df_probables,soup,playerID):
   temp_df['playerID'] = playerID 
   temp_df['hitbool'] = False
   temp_df['status'] = status
+  new_cols = []
   for i in range(df_probables.shape[1]):
 #      print(df_probables.columns[i], df_probables.loc[df_probables['Team']==teamname])
-      temp_df[df_probables.columns[i]] = df_probables.at[df_probables.index[df_probables['Team'] == teamname][0],df_probables.columns[i]]
+      if df_probables.columns[i] in df.columns:
+          temp_df[df_probables.columns[i]] = df_probables.at[df_probables.index[df_probables['Team'] == teamname][0],df_probables.columns[i]]
+      else:
+          new_cols.append(df_probables.columns[i])
 #      try:
 #        temp_df[df_probables.columns[i]] = df_probables.at[df_probables.index[df_probables['Team'] == teamname][0],df_probables.columns[i]]
 #      except:
 #        temp_df[df_probables.columns[i]] = np.nan
-#  print(df)
-  df = df.append(temp_df)
+  temp_df = temp_df.loc[:,~temp_df.columns.duplicated()].copy()
+#  print(df, temp_df.loc[rowID,:])
+#  print(df.loc[~df.index.duplicated(keep='first')], temp_df.loc[~temp_df.index.duplicated(keep='first')])
+#  print(df.loc[~df.index.duplicated(keep='last')], temp_df.loc[~temp_df.index.duplicated(keep='last')])
+#  df = df.loc[~df.index.duplicated(keep='first')]
+#  temp_df = temp_df.loc[~temp_df.index.duplicated(keep='first')]
+  df.loc[rowID] = temp_df.loc[rowID, :]#, ignore_index=True)
+  if len(new_cols) > 0:
+      for i in range(len(new_cols)):
+          df.loc[rowID, new_cols[i]] = temp_df.loc[rowID, new_cols[i]]
+#  df = pd.join([df, temp_df])#, ignore_index=True)
 
   return df 
 
@@ -288,10 +301,12 @@ def scrape_new():
 #  df = pd.DataFrame()
   success = False
   yesterday = pd.Timestamp(pd.Timestamp.today().year,pd.Timestamp.today().month,pd.Timestamp.today().day) - pd.Timedelta('1d')
+#  yesterday = pd.Timestamp(2022, 9, 26)
   dateID = int(yesterday.year*1e9 + yesterday.month*1e7 + yesterday.day*1e5)
   df = pd.read_hdf('{}{}.h5_proc.h5'.format(default_DIR,dateID))
-#  df = pd.read_hdf('2022092300000.h5_proc.h5')
+#  df = pd.read_hdf('2022092600000.h5_proc.h5')
 #  df["Date"] = yesterday
+#  df = pd.DataFrame() 
   uniqueID = (df.playerID.unique())
   for i in range(len(uniqueID)):
     try:

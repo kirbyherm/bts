@@ -1,4 +1,4 @@
-#!/opt/intel/oneapi/intelpython/latest/bin/python
+#!/usr/bin/env python3
 
 from lxml import html
 #from mechanize import Browser
@@ -111,12 +111,12 @@ def probables():
         print(gametime, field, home_team, home_pitcher_hand, home_pitcher_era)
         df_temp = pd.DataFrame({"Team":pd.Series([away_team,home_team]), "Home":pd.Series([False,True]), "Opponent":pd.Series([home_team,away_team]), "Field":pd.Series([field,field]), "GameTime":pd.Series([gametime,gametime]), "PitcherLeftHand":pd.Series([home_pitcher_hand,away_pitcher_hand]), "PitcherERA":pd.Series([home_pitcher_era,away_pitcher_era]), "Playing":pd.Series([home_playing,away_playing])})
 #        df_temp = df_temp.append({"Team":home_team, "Home":True, "Opponent":away_team, "Field":field, "GameTime":gametime, "PitcherLeftHand":away_pitcher_hand, "PitcherERA":away_pitcher_era},ignore_index=True)
-        df = df.append(df_temp,ignore_index=True)
+        df = pd.concat([df,df_temp],ignore_index=True)
     print(df)
     for j in range(len(team_dict)):
         df_temp = pd.DataFrame({"Team":pd.Series([team_dict[j]]), "Home":pd.Series([True]), "Opponent":pd.Series([team_dict[j]]), "Field":pd.Series([field]), "GameTime":pd.Series(['Night']), "PitcherLeftHand":pd.Series([False]), "PitcherERA":pd.Series([0.0]), "Playing":pd.Series([False])})
         if df.loc[df["Team"]==team_dict[j]].shape[0]==0:
-            df = df.append(df_temp,ignore_index=True)
+            df = pd.concat([df,df_temp],ignore_index=True)
     print(df)
     return df
     

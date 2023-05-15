@@ -1,4 +1,4 @@
-#!/opt/intel/oneapi/intelpython/latest/bin/python
+#!/usr/bin/env python3
 
 #from mechanize import Browser
 from time import sleep
